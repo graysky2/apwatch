@@ -66,7 +66,8 @@ section == "iwinfo" {
         if (match(s, /[0-9]+\.[0-9]+ GHz/)) {
             freq_str = substr(s, RSTART)
             sub(/ GHz.*/, "", freq_str)
-            iface_band[cur_iface] = (freq_str + 0 < 3.0) ? "2.4GHz" : "5GHz"
+            freq_num = freq_str + 0
+        iface_band[cur_iface] = (freq_num < 3.0) ? "2.4GHz" : (freq_num < 5.9) ? "5GHz" : "6GHz"
         }
     }
 }
@@ -101,7 +102,7 @@ function dot_pad(name, width,    pad, i) {
 
 function get_band(iface) {
     if (iface in iface_band) return iface_band[iface]
-    return (iface ~ /^phy0/) ? "2.4GHz" : "5GHz"   # fallback: phy numbering heuristic
+    return "5GHz"   # fallback: phy numbering is unreliable on tri-band; 5GHz is safest default
 }
 
 function print_iface(iface,    display, band, header, j, k, mac, rssi, name, bar, padded,
@@ -161,12 +162,15 @@ END {
             }
         }
     }
-    # 2.4 GHz first, then 5 GHz — alphabetical within each band
+    # 2.4 GHz first, then 5 GHz, then 6 GHz — alphabetical within each band
     for (i = 1; i <= iface_count; i++) {
         if (get_band(iface_order[i]) == "2.4GHz") print_iface(iface_order[i])
     }
     for (i = 1; i <= iface_count; i++) {
-        if (get_band(iface_order[i]) != "2.4GHz") print_iface(iface_order[i])
+        if (get_band(iface_order[i]) == "5GHz") print_iface(iface_order[i])
+    }
+    for (i = 1; i <= iface_count; i++) {
+        if (get_band(iface_order[i]) == "6GHz") print_iface(iface_order[i])
     }
 }
 ' "$TMPFILE"
